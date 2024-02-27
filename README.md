@@ -1,3 +1,5 @@
 # ASAM: Boosting Segment Anything Model with Adversarial Tuning
 
-<center>ASAM: Boosting Segment Anything Model with Adversarial Tuning</center>
+<font size=7><div align='center'>ASAM: Boosting Segment Anything Model with Adversarial Tuning</div></font>
+
+
