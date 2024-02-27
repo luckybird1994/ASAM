@@ -11,6 +11,9 @@ In the evolving landscape of computer vision, foundation models have emerged as 
 # Performance
 <div align=center><img width="100%" src=imgs/performance.png/></div>
 
+## News
+- [x] [2024.02.27] Paper is accepted by CVPR2024 and GitHub repo is created.
+
 
 
 
