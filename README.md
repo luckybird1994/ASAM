@@ -149,6 +149,7 @@ or `cd sam_continue_learning & bash scripts/test.sh`, where `--restore-model` is
 ```
 
 ## Demo
+We provide the [online demo]() on huggingface, for example:
 
 ## Acknowledgement
 This repo benefits from [SAM]() and [ControlNet](). Thanks for their wonderful works.
