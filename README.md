@@ -25,7 +25,7 @@ In the evolving landscape of computer vision, foundation models have emerged as 
 ## ToDo
 More kinds of ASAM (vit-large and vit-huge) will soon be open source.
 
-## :fire: Highlights
+## :fire: Highlight
 
 **ASAM** is the enhanced version of SAM, improving the generalizability and keeping the original model structure. Without any pain, ASAM can replace the SAM anywhere for better performance. We release [ASAM checkpoint](https://huggingface.co/xhk/ASAM/tree/main) and [continuously updated checkpoints](https://huggingface.co/xhk/ASAM/tree/main) on huggingface. Just enjoy!
 
