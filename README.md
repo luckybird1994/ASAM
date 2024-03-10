@@ -4,7 +4,9 @@
 <p align="center">
   <a href='https://github.com/luckybird1994/ASAM'><img src='https://img.shields.io/badge/Project-Page-Green'></a>
   <a href='http://arxiv.org/abs/2306.15195'><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a>
-  <a href='https://huggingface.co/spaces/ASAM-Team/ASAM'><img src='https://img.shields.io/badge/Online-Demo-green'></a>
+  <a href='https://huggingface.co/spaces/xhk/ASAM'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Online Demo-green'></a>
+  <a href='https://huggingface.co/xhk/ASAM'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Checkpoint-blue'></a>
+  <a href='https://huggingface.co/datasets/xhk/ASAM-Datasets'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset-yellow'></a>
 </p>
 
 <div align=center><img width="70%" src="assets/framework.png"/></div>
@@ -18,14 +20,14 @@ In the evolving landscape of computer vision, foundation models have emerged as 
 
 ## News
 - [x] [2024.02.27] Paper is accepted by CVPR2024 and GitHub repo is created.
+- [x] [2024.03.10] We release the training code, pre-trained models, datasets and online demo.
 
 ## ToDo
+More kinds of ASAM (vit-large and vit-huge) will soon be open source.
 
-Training code, pre-trained models, and other related materials will soon be open source.
+## :fire: Highlights
 
-## Highlights
-
-`ASAM` is the enhanced version of SAM, improving the generalizability and keeping the original model structure. Without any pain, ASAM can replace the SAM anywhere for better performance. We release [ASAM checkpoint](sdasd) on huggingface. Just enjoy!
+**ASAM** is the enhanced version of SAM, improving the generalizability and keeping the original model structure. Without any pain, ASAM can replace the SAM anywhere for better performance. We release [ASAM checkpoint](https://huggingface.co/xhk/ASAM/tree/main) and [continuously updated checkpoints](https://huggingface.co/xhk/ASAM/tree/main) on huggingface. Just enjoy!
 
 ## Install
 
@@ -37,7 +39,7 @@ pip install -r requirements.txt
 
 
 ## Train
-After preparing [data]() and [controlnet](), you can project image to diffusion latent using the command:
+After preparing [data](docs/data.md) and [controlnet](docs/controlnet.md), you can project image to diffusion latent using the command:
 ```bash
 export CUDA_VISIBLE_DEVICES_LIST=(0 1 2 3 4 5 6 7)
 export now=1
@@ -65,7 +67,7 @@ wait
 ```
 or `bash scripts/inversion.sh`, where `--controlnet_path` is the checkpoint of pretrained controlnet and `--guidence_scale --steps --ddim_steps` are the diffusion-style arguments.
 
-After preparing diffusion latent and [SAM checkpoint](), you can optimize the latent towards the adversarial direction and get adversarial exampls using the command:
+After preparing diffusion latent and [SAM checkpoint](https://github.com/facebookresearch/segment-anything?tab=readme-ov-file), you can optimize the latent towards the adversarial direction and get adversarial exampls using the command:
 ```bash
 CUDA_VISIBLE_DEVICES_LIST=(0 1 2 3 4 5 6 7)
 now=1
@@ -83,15 +85,9 @@ do
     --caption_path=sam-1b/sa_000001-blip2-caption.json \
     --inversion_dir=output/sa_000001-Inversion/embeddings \
     --controlnet_path=ckpt/control_v11p_sd15_mask_sa000002.pth \
+    --eps=0.2 --steps=10 --alpha=0.02 \
+    --mu=0.5 --beta=1.0 --norm=2 --gamma=100 --kappa=100 \
     --sam_batch=140 \
-    --eps=0.2 \
-    --steps=10 \
-    --alpha=0.02 \
-    --mu=0.5 \
-    --beta=1.0 \
-    --norm=2 \
-    --gamma=100 \
-    --kappa=100 \
     --start=${now} \
     --end=$((now + interval)) 
     now=$(expr $now + $interval) 
@@ -99,7 +95,7 @@ done
 ```
 or `bash scripts/grad.sh`, where `--mu=0.5  --beta --norm=2 --gamma --kappa` are the adversarial-style arguments.
 
-After prepare the adversarial examples and [validation data](), you can tuning the
+After preparing the adversarial examples and [validation data](doc/data.md), you can tuning the
 the sam using this command:
 ```bash
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
@@ -119,7 +115,7 @@ python -m torch.distributed.run --nproc_per_node=8 --master_port=30011  main.py 
 or `cd sam_continue_learning & bash scripts/train.sh`, where `--slow_start` is the learning rate trick. ASAM checkpoint will be save at `workdirs/sam_token-tuning_adv0.1@4` folder.
 
 ## Inference
-After tuning the sam and preparing the [test data](), you can inference using this command:
+After tuning the sam and preparing the [test data](docs/data.md), you can inference using this command:
 ```bash
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 python -m torch.distributed.run --nproc_per_node=8 --master_port=30001  main.py \
@@ -138,20 +134,24 @@ python -m torch.distributed.run --nproc_per_node=8 --master_port=30001  main.py 
 ```
 or `cd sam_continue_learning & bash scripts/test.sh`, where `--restore-model` is the ASAM checkpoint path and `--valid-datasets` is the test datasets.
 
+
+## Demo
+We provide the [online demo](https://huggingface.co/spaces/xhk/ASAM) on huggingface, for example:
+<div align=center><img width="90%" src="assets/demo.jpg"/></div>
+
 ## Cite
 ```bibtex
-@article{chen2023shikra,
-  title={Shikra: Unleashing Multimodal LLM's Referential Dialogue Magic},
-  author={Chen, Keqin and Zhang, Zhao and Zeng, Weili and Zhang, Richong and Zhu, Feng and Zhao, Rui},
-  journal={arXiv preprint arXiv:2306.15195},
+@article{tang2023can,
+  title={Can sam segment anything? when sam meets camouflaged object detection},
+  author={Tang, Lv and Xiao, Haoke and Li, Bo},
+  journal={arXiv preprint arXiv:2304.04709},
   year={2023}
 }
 ```
 
-## Demo
-We provide the [online demo]() on huggingface, for example:
-
 ## Acknowledgement
-This repo benefits from [SAM]() and [ControlNet](). Thanks for their wonderful works.
+This repo benefits from [SAM](https://github.com/facebookresearch/segment-anything) and [ControlNet](https://github.com/lllyasviel/ControlNet).  Our heartfelt gratitude goes to the developers of these resources!
 
+## Contact   
+Feel free to leave issues here or send our e-mails (libra@vivo.com, hk.xiao.me@gmail.com, luckybird1994@gmail.com).
 ### 
