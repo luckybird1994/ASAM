@@ -55,7 +55,7 @@ do
     --data_root=sam-1b/sa_000000 \
     --control_mask_dir=sam-1b/sa_000000 \
     --caption_path=sam-1b/sa_000000-blip2-caption.json \
-    --controlnet_path=ckpt/control_v11p_sd15_mask_sa000001.pth \
+    --controlnet_path=ckpt/control_v11p_sd15_mask_031250.pth \
     --guidence_scale=7.5 \
     --steps=10 \
     --ddim_steps=50 \
@@ -84,7 +84,7 @@ do
     --control_mask_dir=sam-1b/sa_000001 \
     --caption_path=sam-1b/sa_000001-blip2-caption.json \
     --inversion_dir=output/sa_000001-Inversion/embeddings \
-    --controlnet_path=ckpt/control_v11p_sd15_mask_sa000002.pth \
+    --controlnet_path=ckpt/control_v11p_sd15_mask_041250.pth \
     --eps=0.2 --steps=10 --alpha=0.02 \
     --mu=0.5 --beta=1.0 --norm=2 --gamma=100 --kappa=100 \
     --sam_batch=140 \

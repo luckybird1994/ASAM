@@ -143,8 +143,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-*.png
-*.jpg
+# *.png
+# *.jpg
 **/SD/
 **/stable-diffusion-v1-5/
 **/sam-subset-11187/
