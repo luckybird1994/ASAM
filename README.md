@@ -22,9 +22,6 @@ In the evolving landscape of computer vision, foundation models have emerged as 
 - [x] [2024.02.27] Paper is accepted by CVPR2024 and GitHub repo is created.
 - [x] [2024.03.10] We release the training code, pre-trained models, datasets and online demo.
 
-## ToDo
-More kinds of ASAM (vit-large and vit-huge) will soon be open source.
-
 ## :fire: Highlight
 
 **ASAM** is the enhanced version of SAM, improving the generalizability and keeping the original model structure. Without any pain, ASAM can replace the SAM anywhere for better performance. We release [ASAM checkpoint](https://huggingface.co/xhk/ASAM/tree/main) and [continuously updated checkpoints](https://huggingface.co/xhk/ASAM/tree/main) on huggingface. Just enjoy!
