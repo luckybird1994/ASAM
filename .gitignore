@@ -155,5 +155,6 @@ dmypy.json
 **/data/
 **/ckpt
 **/train_output_sdxl
-**/sam-1b
-
+**/SAM-1B
+**/output
+**/testdata

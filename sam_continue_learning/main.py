@@ -96,9 +96,9 @@ class MaskDecoder_Tuning(MaskDecoder):
         """
         assert model_type in ["vit_b","vit_l","vit_h"]
         
-        checkpoint_dict = {"vit_b": os.path.join(args.load_prefix,"pretrained_checkpoint/sam_vit_b_maskdecoder.pth"),
-                           "vit_l":"pretrained_checkpoint/sam_vit_l_maskdecoder.pth",
-                           'vit_h':"pretrained_checkpoint/sam_vit_h_maskdecoder.pth"}
+        checkpoint_dict = {"vit_b": "../ckpt/sam_vit_b_maskdecoder.pth",
+                           "vit_l": "../ckpt/sam_vit_l_maskdecoder.pth",
+                           'vit_h': "../ckpt/sam_vit_h_maskdecoder.pth"}
         checkpoint_path = checkpoint_dict[model_type]
         self.load_state_dict(torch.load(checkpoint_path))
         print("Tune Decoder init from SAM MaskDecoder")
@@ -169,12 +169,8 @@ class MaskDecoder_Tuning(MaskDecoder):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Predicts masks. See 'forward' for more details."""
         # Concatenate output tokens
-        
-        #print(self.iou_token.weight.shape, self.mask_tokens.weight.shape)
         output_tokens = torch.cat([self.iou_token.weight, self.mask_tokens.weight], dim=0)
         output_tokens = output_tokens.unsqueeze(0).expand(sparse_prompt_embeddings.size(0), -1, -1)
-        #print(output_tokens.shape)
-        #raise NameError
         tokens = torch.cat((output_tokens, sparse_prompt_embeddings), dim=1)
 
         # Expand per-image data in batch direction to be per-mask
@@ -208,7 +204,6 @@ def show_anns(labels_val, masks, input_point, input_box, input_label, filename, 
     if len(masks) == 0:
         return
 
-    #print(masks.shape, len(ious), len(boundary_ious))
     for i, (label_val,mask, iou, biou) in enumerate(zip(labels_val, masks, ious, boundary_ious)):
        
         plt.figure(figsize=(10,10))
@@ -268,11 +263,11 @@ def get_args_parser():
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--compile', action='store_true')
     
-    parser.add_argument('--numworkers', type=int, default=-1)
+    parser.add_argument('--numworkers', type=int, default=0)
     parser.add_argument("--restore-model", type=str,
-                        help="The path to the hq_decoder training checkpoint for evaluation")
+                        help="The path to the decoder training checkpoint for evaluation")
     parser.add_argument("--restore-sam-model", type=str,
-                        help="The path to the hq_decoder training checkpoint for evaluation")
+                        help="The path to the decoder training checkpoint for evaluation")
     parser.add_argument('--train-datasets', nargs='+')
     parser.add_argument('--valid-datasets', nargs='+')
     parser.add_argument('--load_prefix', default='')
@@ -288,23 +283,23 @@ def get_args_parser():
     parser.add_argument('--tuning_part', default='output_token', choices=['output_token','decoder'])
 
     # Base Learning Rate Setting & Epoch
-    parser.add_argument('--learning_rate', default=5e-3, type=float)
+    parser.add_argument('--learning_rate', default=2e-3, type=float)
     parser.add_argument('--start_epoch', default=0, type=int)
-    parser.add_argument('--max_epoch_num', default=10, type=int)
+    parser.add_argument('--max_epoch_num', default=20, type=int)
     
     # Step Learning Rate
     parser.add_argument('--lr_drop_epoch', default=10, type=int)
     
     # Slow start & Fast decay
-    parser.add_argument('--warmup_epoch', default=5, type=int)
+    parser.add_argument('--warmup_epoch', default=10, type=int)
     parser.add_argument('--gamma', default=0.5, type=float)
     parser.add_argument('--slow_start', action='store_true')
     
     # Input Setting
     parser.add_argument('--input_size', default=[1024,1024], type=list)
-    parser.add_argument('--batch_size_train', default=1, type=int)
+    parser.add_argument('--batch_size_train', default=4, type=int)
     parser.add_argument('--batch_size_prompt_start', default=0, type=int)
-    parser.add_argument('--batch_size_prompt', default=-1, type=int)
+    parser.add_argument('--batch_size_prompt', default=4, type=int)
     parser.add_argument('--train_img_num', default=11186, type=int)
     parser.add_argument('--batch_size_valid', default=1, type=int)
     parser.add_argument('--prompt_type', default='box')
@@ -399,10 +394,11 @@ def main(train_datasets, valid_datasets, args):
     
     
     sam_checkpoint_map = {
-        'vit_b': os.path.join(args.load_prefix,'pretrained_checkpoint/sam_vit_b_01ec64.pth'),
-        'vit_l': 'pretrained_checkpoint/sam_vit_l_0b3195.pth',
-        'vit_h': 'pretrained_checkpoint/sam_vit_h_4b8939.pth',
+        'vit_b': '../ckpt/sam_vit_b_01ec64.pth',
+        'vit_l': '../ckpt/sam_vit_l_0b3195.pth',
+        'vit_h': '../ckpt/sam_vit_h_4b8939.pth',
     }
+    
     sam = sam_model_registry[args.model_type](sam_checkpoint_map[args.model_type])
     if args.compile: sam = torch.compile(sam)
     _ = sam.to(device=args.device)
@@ -538,7 +534,7 @@ def train(args, net, sam,optimizer, train_dataloaders, valid_dataloaders, lr_sch
         net.train()  
 
         if epoch % args.model_save_fre == 0:
-            model_name = "/epoch_"+str(epoch)+".pth"
+            model_name = "/asam_decoder_epoch_"+str(epoch)+".pth"
             print('come here save at', args.output + model_name)
             misc.save_on_master(net.module.state_dict(), args.output + model_name)
     
@@ -548,18 +544,18 @@ def train(args, net, sam,optimizer, train_dataloaders, valid_dataloaders, lr_sch
     # merge sam and tune_decoder
     if misc.is_main_process():        
         sam_checkpoint_map = {
-        'vit_b': 'pretrained_checkpoint/sam_vit_b_01ec64.pth',
-        'vit_l': 'pretrained_checkpoint/sam_vit_b_01ec64.pth',
-        'vit_h': 'pretrained_checkpoint/sam_vit_b_01ec64.pth',
+        'vit_b': '../ckpt/sam_vit_b_01ec64.pth',
+        'vit_l': '../ckpt/sam_vit_b_01ec64.pth',
+        'vit_h': '../ckpt/sam_vit_b_01ec64.pth',
         }
         sam_ckpt = torch.load(sam_checkpoint_map[args.model_type]) 
 
-        hq_decoder = torch.load(args.output + model_name)
-        for key in hq_decoder.keys():
+        decoder = torch.load(args.output + model_name)
+        for key in decoder.keys():
             if 'mask_token' in key or 'iou_token' in key:
                 sam_key = 'mask_decoder.'+key
-                sam_ckpt[sam_key] = hq_decoder[key]
-        model_name = "/asam_epoch_"+str(epoch)+".pth"
+                sam_ckpt[sam_key] = decoder[key]
+        model_name = "/asam_epoch_" +str(epoch)+ ".pth"
         torch.save(sam_ckpt, args.output + model_name)
 
 @torch.no_grad()
@@ -612,18 +608,6 @@ def evaluate(args, net, sam, valid_dataloaders, visualize=False):
             K,N,H,W = labels_val.shape
             k,n,h,w = labels_ori.shape
             
-            #print(inputs_val.shape, labels_val.shape, torch.max(labels_ori))
-            
-            # labels_val_np = labels_val[0,0,...].cpu().data.numpy()
-            # cv2.imwrite("tmp.png",labels_val_np*255.0)
-            # raise NameError
-            if n == 0:
-                bad_examples += 1
-                loss_dict = {"val_iou_"+str(k): torch.tensor(0.5).cuda(), "val_boundary_iou_"+str(k): torch.tensor(0.5).cuda()}
-                loss_dict_reduced = misc.reduce_dict(loss_dict)
-                metric_logger.update(**loss_dict_reduced)
-                continue
-            
             if torch.cuda.is_available():
                 inputs_val = inputs_val.cuda()
                 labels_val = labels_val.reshape(K*N,H,W).cuda() #K*N 1024 1024 
@@ -637,10 +621,6 @@ def evaluate(args, net, sam, valid_dataloaders, visualize=False):
                 try:
                     labels_points = misc.masks_sample_points(labels_val,k=args.point_num) #[K*N 10 2]
                 except:
-                    bad_examples+=1
-                    loss_dict = {"val_iou_"+str(valid_datasets[dataset_id]['name']): torch.tensor(0.5).cuda(), "val_boundary_iou_"+str(valid_datasets[dataset_id]['name']): torch.tensor(0.5).cuda()}
-                    loss_dict_reduced = misc.reduce_dict(loss_dict)
-                    metric_logger.update(**loss_dict_reduced)
                     continue
                     
             batched_input = []
@@ -652,7 +632,6 @@ def evaluate(args, net, sam, valid_dataloaders, visualize=False):
                 dict_input['boxes'] = labels_box #N 4
             elif args.prompt_type == 'point': 
                 point_coords = labels_points #[N 10 2]
-                #print(point_coords.shape)
                 dict_input['point_coords'] = point_coords
                 dict_input['point_labels'] = torch.ones(point_coords.size()[:2], device=point_coords.device)
             elif args.prompt_type == 'noise_mask':
@@ -683,26 +662,10 @@ def evaluate(args, net, sam, valid_dataloaders, visualize=False):
                     multimask_output=False,
                 )
                 masks = F.interpolate(masks, scale_factor=4, mode='bilinear', align_corners=False)
-            #print(masks.shape,labels_ori.shape)
             
-            try:
-                iou,iou_list = compute_iou(masks,labels_ori.unsqueeze(1))
-                boundary_iou,boundary_iou_list = compute_boundary_iou(masks,labels_ori.unsqueeze(1))
-            except:
-                bad_examples += 1
-                loss_dict = {"val_iou_"+str(valid_datasets[dataset_id]['name']): torch.tensor(0.5).cuda(), "val_boundary_iou_"+str(valid_datasets[dataset_id]['name']): torch.tensor(0.5).cuda()}
-                loss_dict_reduced = misc.reduce_dict(loss_dict)
-                metric_logger.update(**loss_dict_reduced)
-                continue
-            
-            if torch.isnan(iou).any() or torch.isnan(boundary_iou).any():
-                bad_examples += 1
-                loss_dict = {"val_iou_"+str(valid_datasets[dataset_id]['name']): torch.tensor(0.5).cuda(), "val_boundary_iou_"+str(valid_datasets[dataset_id]['name']): torch.tensor(0.5).cuda()}
-                loss_dict_reduced = misc.reduce_dict(loss_dict)
-                metric_logger.update(**loss_dict_reduced)
-                continue    
-        
-            
+            iou,iou_list = compute_iou(masks,labels_ori.unsqueeze(1))
+            boundary_iou,boundary_iou_list = compute_boundary_iou(masks,labels_ori.unsqueeze(1))
+                    
             if args.prompt_type =='box':
                 save_dir = os.path.join(args.output, args.prompt_type, valid_datasets[dataset_id]['name'])
             else:
@@ -744,222 +707,39 @@ def evaluate(args, net, sam, valid_dataloaders, visualize=False):
 
 
 if __name__ == "__main__":
-
-    ### --------------- Configuring the Train and Valid datasets ---------------    
-    dataset_sa000000adv_dice = {"name": "sam_subset",
-        "im_dir": "../output/sa_000000-Grad/skip-ablation-01-mi-SD-7.5-50-SAM-sam-vit_b-140-ADV-0.2-10-0.01-0.5-100.0-100.0-1.0-2/adv",
-        "gt_dir": "../sam-1b/sa_000000",
-        "im_ext": ".png",
-        "gt_ext": ""}
     
+    ### --------------- Configuring the Train and Valid datasets ---------------  
     
-    # valid set
+    # training dataset  
+    dataset_sa000000_adv = {"name": "sam_subset",
+        "im_dir": "../output/sa_000000-Grad/skip-ablation-01-mi-SD-7.5-50-SAM-sam-vit_b-140-ADV-0.2-10-0.02-0.5-100.0-100.0-1.0-2/adv",
+        "gt_dir": "../SAM-1B/sa_000000",
+        "im_ext": ".jpg",
+        "gt_ext": ""
+    }
     
-    # single
+    # validation dataset
     dataset_hrsod_val = {"name": "HRSOD-TE",
-            "im_dir": "data/HRSOD-TE/imgs",
-            "gt_dir": "data/HRSOD-TE/gts",
-            "im_ext": ".jpg",
-            "gt_ext": ".png"}
+        "im_dir": "testdata/HRSOD-TE/imgs",
+        "gt_dir": "testdata/HRSOD-TE/gts",
+        "im_ext": ".jpg",
+        "gt_ext": ".png"
+    }
 
-    
-    dataset_ade20k_val = {"name": "ADE20K_2016_07_26",
-            "im_dir": "data/ADE20K_2016_07_26/images/validation",
-            "gt_dir": "data/ADE20K_2016_07_26/images/validation",
-            "im_ext": ".jpg",
-            "gt_ext": "_seg.png"}
-    
-    dataset_cityscapes_val = {"name": "cityscaps_val",
-            "im_dir": "data/cityscapes/leftImg8bit/val",
-            "gt_dir": "data/cityscapes/gtFine/val",
-            "im_ext": "_leftImg8bit.png",
-            "gt_ext": "_gtFine_instanceIds.png"}
-    
-    dataset_voc2012_val = {"name": "voc2012_val",
-            "im_dir": "data/VOC2012/JPEGImages_val",
-            "gt_dir": "data/VOC2012/SegmentationObject",
-            "im_ext": ".jpg",
-            "gt_ext": ".png"}
-    #实列分割
+    # test dataset
     dataset_coco2017_val = {"name": "coco2017_val",
-            "im_dir": "data/COCO2017-val/val2017",
-            "annotation_file": "data/COCO2017-val/instances_val2017.json",
-            "im_ext": ".jpg"
-            }
-    dataset_camo = {"name": "camo",
-        "im_dir": "data/CAMO/imgs",
-        "gt_dir": "data/CAMO/gts",
-        "im_ext": ".jpg",
-        "gt_ext": ".png"
+        "im_dir": "testdata/COCO2017-val/val2017",
+        "annotation_file": "testdata/COCO2017-val/instances_val2017.json",
+        "im_ext": ".jpg"
     }
     
-    dataset_ishape_antenna = {"name": "ishape",
-        "im_dir": "data/ishape_dataset/antenna/val/image",
-        "gt_dir": "data/ishape_dataset/antenna/val/instance_map",
-        "im_ext": ".jpg",
-        "gt_ext": ".png"
-    }
-    
-    dataset_ppdls = {"name": "ppdls",
-        "im_dir": "data/Plant_Phenotyping_Datasets",
-        "gt_dir": "data/Plant_Phenotyping_Datasets",
-        "im_ext": "_rgb.png",
-        "gt_ext": "_label.png"
-        }
-    
-    dataset_gtea_train = {"name": "gtea",
-            "im_dir": "data/GTEA_hand2k/GTEA_GAZE_PLUS/Images",
-            "gt_dir": "data/GTEA_hand2k/GTEA_GAZE_PLUS/Masks",
-            "im_ext": ".jpg",
-            "gt_ext": ".png"
-    }
-    
-    dataset_streets = {"name": "streets_coco",
-        "im_dir": "data/vehicleannotations/images",
-        "annotation_file": "data/vehicleannotations/annotations/vehicle-annotations.json",
-        "im_ext": ".jpg",
-    }
-    
-    dataset_TimberSeg = {"name": "timberseg_coco",
-        "im_dir": "data/y5npsm3gkj-2/prescaled/",
-        "annotation_file": "data/y5npsm3gkj-2/prescaled/coco_annotation_rotated.json",
-        "im_ext": ".png",
-    }
-    
-    dataset_ppdls = {"name": "ppdls",
-        "im_dir": "data/Plant_Phenotyping_Datasets",
-        "gt_dir": "data/Plant_Phenotyping_Datasets",
-        "im_ext": "_rgb.png",
-        "gt_ext": "_label.png"
-        }
-    
-    dataset_gtea_train = {"name": "gtea",
-        "im_dir": "data/GTEA_GAZE_PLUS/Images",
-        "gt_dir": "data/GTEA_GAZE_PLUS/Masks",
-        "im_ext": ".jpg",
-        "gt_ext": ".png"
-    }
-    
-    dataset_streets = {"name": "streets_coco",
-        "im_dir": "data/vehicleannotations/images",
-        "annotation_file": "data/vehicleannotations/annotations/vehicle-annotations.json",
-        "im_ext": ".jpg",
-    }
-    
-    dataset_big_val = {"name": "big",
-        "im_dir": "data/BIG/val",
-        "gt_dir": "data/BIG/val",
-        "im_ext": "_im.jpg",
-        "gt_ext": "_gt.png"
-    }
-    
-    dataset_ndis_train = {"name": "ndis_park_coco",
-        "im_dir": "data/ndis_park/train/imgs",
-        "annotation_file": "data/ndis_park/train/train_coco_annotations.json",
-        "im_ext": ".jpg",
-    }
-    
-    dataset_Plittersdorf_test = {"name": "Plittersdorf_coco",
-        "im_dir": "data/plittersdorf_instance_segmentation_coco/images",
-        "annotation_file": "data/plittersdorf_instance_segmentation_coco/test.json",
-        "im_ext": ".jpg",
-    }
-    
-    dataset_Plittersdorf_train = {"name": "Plittersdorf_coco",
-        "im_dir": "data/plittersdorf_instance_segmentation_coco/images",
-        "annotation_file": "data/plittersdorf_instance_segmentation_coco/train.json",
-        "im_ext": ".jpg",
-    }
-    
-    dataset_Plittersdorf_val = {"name": "Plittersdorf_coco",
-        "im_dir": "data/plittersdorf_instance_segmentation_coco/images",
-        "annotation_file": "data/plittersdorf_instance_segmentation_coco/val.json",
-        "im_ext": ".jpg",
-    }
-    
-    dataset_egohos = {"name": "egohos",
-        "im_dir": "data/egohos/val/image",
-        "gt_dir": "data/egohos/val/label",
-        "im_ext": ".jpg",
-        "gt_ext": ".png"
-    }
-    
-    dataset_LVIS = {"name": "LVIS",
-        "im_dir": "data/LVIS/val2017",
-        "annotation_file": "data/LVIS/annotations/lvis_v1_val.json",
-        "im_ext": ".jpg",
-    }
-    dataset_BBC038v1 = {"name": "BBC038v1",
-        "im_dir": "data/BBC038V1-Train",
-        "annotation_file": "data/BBC038V1-Train",
-        "im_ext": ".png",
-        "gt_ext": ".png"
-    }
-    
-    dataset_DOORS1 = {"name": "DOORS1",
-        "im_dir": "data/DOORS/Regression/Te1_5000_b_2022-08-02 11.16.00/img",
-        "gt_dir": "data/DOORS/Regression/Te1_5000_b_2022-08-02 11.16.00/Rock_all",
-        "im_ext": ".png",
-        "gt_ext": ".png"
-    }
-    
-    dataset_DOORS2 = {"name": "DOORS2",
-        "im_dir": "data/DOORS/Regression/Te2_5000_ub_2022-08-02 11.16.11/img",
-        "gt_dir": "data/DOORS/Regression/Te2_5000_ub_2022-08-02 11.16.11/Rock_all",
-        "im_ext": ".png",
-        "gt_ext": ".png"
-    }
-    
-    
-    dataset_NDD20_ABOVE = {"name": "NDD20_coco",
-        "im_dir": "data/NDD20/ABOVE",
-        "annotation_file": "data/NDD20/ABOVE_LABELS.json",
-        "im_ext": ".jpg",
-    }
-        
-    dataset_PIDRAY = {"name": "pid_coco",
-        "im_dir": "data/pidray/hard",
-        "annotation_file": "data/pidray/annotations/xray_test_hard.json",
-        "im_ext": ".jpg",
-    }
-    
-    dataset_TrashCan_val = {"name": "TrashCAN_coco",
-        "im_dir": "data/TrashCan/instance_version/val",
-        "annotation_file": "data/TrashCan/instance_version/instances_val_trashcan.json",
-        "im_ext": ".jpg",
-    }
-    
-    dataset_ZeroWaste = {"name": "ZeroWaste",
-        "im_dir": "data/splits_final_deblurred/train/data",
-        "gt_dir": "data/splits_final_deblurred/train/sem_seg",
-        "im_ext": ".PNG",
-        "gt_ext": ".PNG"
-    }
-    
-    dataset_DRAM_test = {"name": "DRAM",
-        "im_dir": "data/DRAM_raw",
-        "gt_dir": "data/DRAM_raw",
-        "im_ext": ".jpg",
-        "gt_ext": ".png"
-    }
-    
-    dataset_ovis_train = {"name": "ovis_train_coco",
-            "im_dir": "data/OVIS/train",
-            "annotation_file": "data/OVIS/annotations_train.json",
-            "im_ext": ".jpg"
-    }
-    
+
     args = get_args_parser()
     if not args.eval:
-        args.output = os.path.join('work_dirs', args.output_prefix+'-'+args.train_datasets[0].split('_')[-1]+'-'+args.model_type+'-'+str(args.train_img_num))
-    elif args.baseline: 
-        if not args.restore_sam_model: args.output = os.path.join('work_dirs', args.output_prefix+'-'+args.model_type)
-        else: args.output = os.path.join(*args.restore_sam_model.split('/')[:-1])
+        args.output = os.path.join('work_dirs', args.output_prefix)
     elif args.restore_model:
         args.output = os.path.join(*args.restore_model.split('/')[:-1])
     
-    # print(args.output)
-    # raise NameError
     train_datasets = [globals()[dataset] for dataset in args.train_datasets]
     valid_datasets = [globals()[dataset] for dataset in args.valid_datasets]
     

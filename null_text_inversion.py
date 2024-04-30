@@ -44,10 +44,10 @@ parser.add_argument('--guess_mode', action='store_true')
 parser.add_argument('--guidence_scale', default=7.5, type=float, help='random seed')   
 
 # path setting
-parser.add_argument('--data_root', default='sam-1b/sa_000000', type=str, help='random seed')   
+parser.add_argument('--data_root', default='SAM-1B/sa_000000', type=str, help='random seed')   
 parser.add_argument('--save_root', default='output/sa_000000-Grad', type=str, help='random seed')   
-parser.add_argument('--control_mask_dir', default='sam-1b/sa_000000', type=str, help='random seed')    
-parser.add_argument('--caption_path', default='sam-1b/sa_000000-blip2-caption.json', type=str, help='random seed')    
+parser.add_argument('--control_mask_dir', default='SAM-1B/sa_000000', type=str, help='random seed')    
+parser.add_argument('--caption_path', default='SAM-1B/sa_000000-blip2-caption.json', type=str, help='random seed')    
 parser.add_argument('--controlnet_path', default='ckpt/control_v11p_sd15_mask_sa000000.pth', type=str, help='random seed')
 args = parser.parse_args()
 print(args)
@@ -657,7 +657,7 @@ def check_inversion():
 if __name__ == '__main__':
     # Load Stable Diffusion 
     scheduler = DDIMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", clip_sample=False, set_alpha_to_one=False)
-    MY_TOKEN = your huggingface token
+    MY_TOKEN = "your huggingface token"
     LOW_RESOURCE = False 
     NUM_DDIM_STEPS = args.ddim_steps
     GUIDANCE_SCALE = args.guidence_scale
@@ -736,4 +736,4 @@ if __name__ == '__main__':
         controller = AttentionStore()
         image_inv, x_t = run_and_display(prompts=[prompt], controller=controller, run_baseline=False, latent=x_t, mask_control=mask_control,uncond_embeddings=uncond_embeddings, verbose=False)
         ptp_utils.view_images([image_gt, image_inv[0]], prefix=f'{args.save_root}/pair/sa_{i}', shuffix='.jpg')
-        ptp_utils.view_images([image_inv[0]], prefix=f'{args.save_root}/inv/sa_{i}', shuffix='.png')
+        ptp_utils.view_images([image_inv[0]], prefix=f'{args.save_root}/inv/sa_{i}', shuffix='.jpg')

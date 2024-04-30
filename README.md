@@ -26,111 +26,75 @@ In the evolving landscape of computer vision, foundation models have emerged as 
 
 **ASAM** is the enhanced version of SAM, improving the generalizability and keeping the original model structure. Without any pain, ASAM can replace the SAM anywhere for better performance. We release [ASAM checkpoint](https://huggingface.co/xhk/ASAM/tree/main) and [continuously updated checkpoints](https://huggingface.co/xhk/ASAM/tree/main) on huggingface. Just enjoy!
 
-## Install
+## Installation
 
 ```bash
-conda create -n ASAM python=3.9
-conda activate ASAM
-pip install -r requirements.txt
+conda env create -f environment.yml
 ```
 
 
-## Train
-After preparing [data](docs/data.md) and [controlnet](docs/controlnet.md), you can project image to diffusion latent using the command:
+## Training
+[Preparing datasets](docs/data.md) and [training an mask-guided ControlNet](docs/controlnet.md) in advance, then you can start to **project images to diffusion latents** using this command:
 ```bash
-export CUDA_VISIBLE_DEVICES_LIST=(0 1 2 3 4 5 6 7)
-export now=1
-export interval=1300
-for id in "${CUDA_VISIBLE_DEVICES_LIST[@]}"
-do
-    echo "Start: ${now}"
-    echo "End $((now + interval))"
-    echo "GPU $id" 
-    export CUDA_VISIBLE_DEVICES=${id} 
-    python null_text_inversion.py \
+python null_text_inversion.py \
     --save_root=output/sa_000000-Inversion \
-    --data_root=sam-1b/sa_000000 \
-    --control_mask_dir=sam-1b/sa_000000 \
-    --caption_path=sam-1b/sa_000000-blip2-caption.json \
-    --controlnet_path=ckpt/control_v11p_sd15_mask_031250.pth \
+    --data_root=SAM-1B/sa_000000 \
+    --control_mask_dir=SAM-1B/sa_000000 \
+    --caption_path=SAM-1B/sa_000000-blip2-caption.json \
+    --controlnet_path=ckpt/control_v11p_sd15_mask_inv.pth \
     --guidence_scale=7.5 \
     --steps=10 \
     --ddim_steps=50 \
-    --start=${now} \
-    --end=$((now + interval))\ &
-    now=$(expr $now + $interval) 
-done
-wait
+    --start=0 \
+    --end=11187
 ```
-or `bash scripts/inversion.sh`, where `--controlnet_path` is the checkpoint of pretrained controlnet and `--guidence_scale --steps --ddim_steps` are the diffusion-style arguments.
+or directly `bash scripts/inversion.sh`, where `--controlnet_path` is the checkpoint of pretrained ControlNet and `--guidence_scale --steps --ddim_steps` are the diffusion-style arguments.
 
-After preparing diffusion latent and [SAM checkpoint](https://github.com/facebookresearch/segment-anything?tab=readme-ov-file), you can optimize the latent towards the adversarial direction and get adversarial exampls using the command:
+**Tips:** If you meet Connnection Error when downloading Stable Diffusion Checkpoint from Huggingface, you can consider `export HF_ENDPOINT=https://hf-mirror.com.`
+
+Next, download pretrained [SAM(vit-base) checkpoint](https://github.com/facebookresearch/segment-anything?tab=readme-ov-file), then optimize the diffusion latents to generate adversarial exampls using this command:
 ```bash
-CUDA_VISIBLE_DEVICES_LIST=(0 1 2 3 4 5 6 7)
-now=1
-interval=1300
-for id in "${CUDA_VISIBLE_DEVICES_LIST[@]}"
-do
-    echo "Start: ${now}"
-    echo "End $((now + interval))"
-    echo "GPU $id" 
-    export CUDA_VISIBLE_DEVICES=${id} 
-    python grad_null_text_inversion_edit.py \
-    --save_root=output/sa_000001-Grad \
-    --data_root=sam-1b/sa_000001 \
-    --control_mask_dir=sam-1b/sa_000001 \
-    --caption_path=sam-1b/sa_000001-blip2-caption.json \
-    --inversion_dir=output/sa_000001-Inversion/embeddings \
-    --controlnet_path=ckpt/control_v11p_sd15_mask_041250.pth \
+python grad_null_text_inversion_edit.py \
+    --save_root=output/sa_000000-Grad \
+    --data_root=SAM-1B/sa_000000 \
+    --control_mask_dir=SAM-1B/sa_000000 \
+    --caption_path=SAM-1B/sa_000000-blip2-caption.json \
+    --inversion_dir=output/sa_000000-Inversion/embeddings \
+    --controlnet_path=ckpt/control_v11p_sd15_mask_adv.pth \
     --eps=0.2 --steps=10 --alpha=0.02 \
     --mu=0.5 --beta=1.0 --norm=2 --gamma=100 --kappa=100 \
     --sam_batch=140 \
-    --start=${now} \
-    --end=$((now + interval)) 
-    now=$(expr $now + $interval) 
-done
+    --start=0 --end=11186 \
+    --model_pth=ckpt/sam_vit_b_01ec64.pth
 ```
-or `bash scripts/grad.sh`, where `--mu=0.5  --beta --norm=2 --gamma --kappa` are the adversarial-style arguments.
+or directly `bash scripts/grad.sh`, where `--mu=0.5  --beta --norm=2 --gamma --kappa` are the adversarial-style arguments.
 
-After preparing the adversarial examples and [validation data](doc/data.md), you can tuning the
-the sam using this command:
+At this point, we have got adversarial examples. We use them to tuning SAM by this command:
 ```bash
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+cd sam_continue_learning
 python -m torch.distributed.run --nproc_per_node=8 --master_port=30011  main.py \
---model-type vit_b \
---output_prefix sam_token-tuning_adv0.1@4 \
---batch_size_train=4 \
---batch_size_prompt=4 \
---batch_size_prompt_start=0 \
---find_unused_params \
---numworkers=0 \
---learning_rate=1e-3 \
---train-datasets=dataset_sa000000adv_dice_0_1 \
---valid-datasets=dataset_hrsod_val \
---slow_start \
+    --model-type vit_b \
+    --output_prefix asam_vit-b_tuning \
+    --find_unused_params \
+    --train-datasets=dataset_sa000000_adv \
+    --valid-datasets=dataset_hrsod_val \
+    --slow_start 
 ```
-or `cd sam_continue_learning & bash scripts/train.sh`, where `--slow_start` is the learning rate trick. ASAM checkpoint will be save at `workdirs/sam_token-tuning_adv0.1@4` folder.
+or `bash sam_continue_leanring/scripts/tuning.sh`. ASAM checkpoint will be saved at `sam_continue_leanring/workdirs/asam_vit-b_tuning` directory.
 
 ## Inference
-After tuning the sam and preparing the [test data](docs/data.md), you can inference using this command:
+After finishing training process and preparing the [test data](docs/data.md), we can inference ASAM using this command:
 ```bash
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-python -m torch.distributed.run --nproc_per_node=8 --master_port=30001  main.py \
---model-type vit_b \
---output_prefix work_dirs/diceloss_sam_iou_masktoken-tuning_b_adv@4 \
---batch_size_train=8 \
---batch_size_prompt=4 \
---batch_size_prompt_start=0 \
---find_unused_params \
---numworkers=0 \
---eval \
---prompt_type box \
---train-datasets dataset_sa000000 \
---valid-datasets dataset_hrsod_val dataset_camo \
---restore-model work_dirs/sam_token-tuning_adv0.1@4-1-vit_b-11186/epoch_9.pth \
+cd sam_continue_learning
+python -m torch.distributed.run --nproc_per_node=1 --master_port=30002  main.py \
+    --model-type vit_b \
+    --eval \
+    --prompt_type box \
+    --train-datasets dataset_sa000000_adv \
+    --valid-datasets dataset_coco2017_val \
+    --restore-model work_dirs/asam_vit-b_tuning/asam_decoder_epoch_19.pth \
 ```
-or `cd sam_continue_learning & bash scripts/test.sh`, where `--restore-model` is the ASAM checkpoint path and `--valid-datasets` is the test datasets.
-
+or directly `bash scripts/sam_continue_leanring/test.sh`, where `--restore-model` is the ASAM decoder checkpoint path and `--valid-datasets` is the test datasets.
 
 ## Demo
 We provide the [online demo](https://huggingface.co/spaces/xhk/ASAM) on huggingface, for example:

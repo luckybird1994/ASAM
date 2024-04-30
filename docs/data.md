@@ -1,5 +1,5 @@
 ## Train Dataset
-We use %1 of [SA-1B]() subset [sa_000000]() to train controlnet from stratch and project images to latent. SA-1B save masks per image as a json file. It can be loaded as a dictionary in python in the below format.
+We use %1 of [SA-1B]() subset [sa_000000]() to train controlnet from stratch and generate adversarial samples. SA-1B dataset save masks per image as a json file. It can be loaded as a dictionary in python in the below format:
 
 ```python
 {
@@ -37,7 +37,7 @@ mask = mask_utils.decode(annotation["segmentation"])
 
 See [here](https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocotools/mask.py) for more instructions to manipulate masks stored in RLE format.
 
-For convenience, we decode all masks to the same folder and generate image caption in advance. Your train dataset folder structure is:
+**For convenience**, we decode all masks to the same folder and generate image caption using [Blip2_t5](https://github.com/salesforce/LAVIS/tree/main/projects/blip2) in advance. Therefore, your training dataset folder structure is below:
 
 ```
 +-- sam-1b
@@ -64,6 +64,6 @@ where `sa_000000-controlnet-train.json` is used to [train controlnet](ControlNet
 
 ## Evaluation Datasets
 
-To completely evaluate ASAM, not only using 24 evaluation datasets of [SAM baseline](https://ai.meta.com/research/publications/segment-anything/), we also add [COCO dataset](https://paperswithcode.com/paper/microsoft-coco-common-objects-in-context), one high-resolution dataset ([BIG](https://paperswithcode.com/dataset/big)),  one saliency dataset ([HRSOD](https://paperswithcode.com/dataset/hrsod)), one camouflaged datast ([CAMO](https://paperswithcode.com/dataset/camo)) and two popular medical datasets.
+<!-- To completely evaluate ASAM, not only using 24 evaluation datasets of [SAM baseline](https://ai.meta.com/research/publications/segment-anything/), we also add [COCO dataset](https://paperswithcode.com/paper/microsoft-coco-common-objects-in-context), one high-resolution dataset ([BIG](https://paperswithcode.com/dataset/big)),  one saliency dataset ([HRSOD](https://paperswithcode.com/dataset/hrsod)), one camouflaged datast ([CAMO](https://paperswithcode.com/dataset/camo)) and two popular medical datasets. -->
 
 We also released the [organized evaluation dataset](https://huggingface.co/datasets/xhk/ASAM-Datasets/tree/main) on huggingface. 

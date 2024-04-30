@@ -1,12 +1,7 @@
-# from swinT import get_swin_B
-# from pytorch_pretrained_vit import ViT, load_pretrained_weights
 import torchvision
 import torch
 import os
 import timm
-# from resnet_adv import resnet152_denoise, resnet101_denoise, resnet152
-# from aux_bn import MixBatchNorm2d, to_mix_status, to_clean_status, to_adv_status
-# from efficientnet_pytorch import EfficientNet
 import re
 import numpy as np
 import torch
@@ -14,33 +9,16 @@ import matplotlib.pyplot as plt
 import cv2
 from sam_continue_learning.segment_anything_training import sam_model_registry
 import os
-from sam_continue_learning.efficient_sam.build_efficient_sam import build_efficient_sam_vitt, build_efficient_sam_vits
 
-def get_model(model, model_type):
+def get_model(model, model_type, checkpoint=None):
     home_path = 'home_path'
-    if model == 'sam':
-        if model_type == "vit_b": sam_checkpoint = "sam_continue_learning/pretrained_checkpoint/sam_vit_b_01ec64.pth"
-        if model_type == "vit_l": sam_checkpoint = "sam_continue_learning/pretrained_checkpoint/sam_vit_l_0b3195.pth"
-        if model_type == "vit_h": sam_checkpoint = "sam_continue_learning/pretrained_checkpoint/sam_vit_h_4b8939.pth"
-        
+    if model == 'sam':        
         device = "cuda"
-        sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+        sam = sam_model_registry[model_type](checkpoint=checkpoint)
         sam.to(device=device)
-        return sam
-    elif model == 'sam_efficient':
-        
-        if model_type == "vit_t": sam_checkpoint = torch.load("sam_continue_learning/pretrained_checkpoint/efficient_sam_vitt.pt")['model']
-        if model_type == "vit_s": sam_checkpoint = torch.load("sam_continue_learning/pretrained_checkpoint/efficient_sam_vits.pt")['model']
-        
-        if model_type == 'vit_t': sam = build_efficient_sam_vitt()
-        if model_type == 'vit_s': sam = build_efficient_sam_vits()      
-        sam.load_state_dict(sam_checkpoint)
-        # print(type(sam))
-        # raise NameError
         return sam
     elif model == 'resnet50':
         net = torchvision.models.resnet50(pretrained=True)
-        #net.load_state_dict(torch.load(os.path.join(home_path, 'checkpoints/resnet50-0676ba61.pth')))
     elif model == 'mnv2':
         net = torchvision.models.mobilenet_v2()
         net.load_state_dict(torch.load(os.path.join(home_path, 'checkpoints/mobilenet_v2-b0353104.pth')))

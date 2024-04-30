@@ -32,6 +32,7 @@ parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 # sam setting
 parser.add_argument('--model', type=str, default='sam', help='cnn')
 parser.add_argument('--model_type', type=str, default='vit_b', help='cnn')
+parser.add_argument('--model_pth', type=str, default='vit_b', help='cnn')
 parser.add_argument('--sam_batch', type=int, default=150, help='cnn')
 
 # SD setting
@@ -94,19 +95,14 @@ else:
 mean = torch.Tensor(mean).cuda()
 std = torch.Tensor(std).cuda()
 
-net = get_model(args.model, args.model_type)
+net = get_model(args.model, args.model_type, args.model_pth)
 
-# print(type(net))
-# raise NameError
 
 if device == 'cuda':
     net.to(device)
     cudnn.benchmark = True
 net.eval()
 net.cuda()
-
-# if args.model == 'sam':
-#     net_predictor = SamPredictor(net)
 
 def str2img(value):
     width, height = 512, 512
@@ -652,13 +648,9 @@ def text2image_ldm_stable_last(
             latents_t = (1 / 0.18215 * latents_last)
             image = model.vae.decode(latents_t)['sample']
             image = (image / 2 + 0.5)
-            #print(4, image.max(), image.min())
             image = limitation01(image)
             image_m = F.interpolate(image, image_size)
-            #print(1, image_m.max(), image_m.min())
 
-            #net_predictor.set_torch_image(image_m*255.0,original_image_size=(1024,1024))
-            #ad_masks, ad_iou_predictions, ad_low_res_logits = net_predictor.predict_torch(point_coords=None,point_labels=None, boxes=boxes, multimask_output=False)
             if args.model == 'sam':
                 example = {}
                 example['image'] = image_m[0]*255.0
@@ -666,18 +658,11 @@ def text2image_ldm_stable_last(
                 example['original_size'] = image_size
                 output, interbeddings = net([example], multimask_output=False)
                 output = output[0]
-                print(type(output))
-                
-                print(example['image'].dtype, example['boxes'].dtype)
-                #raise NameError
                 ad_masks, ad_iou_predictions, ad_low_res_logits = output['masks'],output['iou_predictions'],output['low_res_logits']  
             elif args.model == 'sam_efficient':
 
                 input_points = boxes.reshape(1,-1,2,2)
-                input_labels = torch.concat([torch.full((1,boxes.shape[0],1),3), torch.full((1,boxes.shape[0],1),4)] ,-1).cuda()
-                # print(input_labels, input_labels.shape)
-                # print(image_m.shape,torch.max(image_m))
-                # raise NameError         
+                input_labels = torch.concat([torch.full((1,boxes.shape[0],1),3), torch.full((1,boxes.shape[0],1),4)] ,-1).cuda()        
                 predicted_logits, predicted_iou = net(
                     image_m,
                     input_points,
@@ -685,14 +670,11 @@ def text2image_ldm_stable_last(
                 )
                 sorted_ids = torch.argsort(predicted_iou, dim=-1, descending=True)
                 predicted_iou = torch.take_along_dim(predicted_iou, sorted_ids, dim=2)
-                print(predicted_logits.shape)
                 predicted_logits = torch.take_along_dim(
                     predicted_logits, sorted_ids[..., None, None], dim=2
                 )
-                # print(predicted_logits.shape)
                 ad_low_res_logits = F.interpolate(predicted_logits[0,:,:1,:,:],(256,256),mode='bilinear',align_corners=False)
                 ad_masks = torch.ge(ad_low_res_logits,0)
-                # print(ad_low_res_logits.shape)
                 
             loss_ce = args.gamma * torch.nn.functional.binary_cross_entropy_with_logits(ad_low_res_logits, label_masks_256/255.0) 
             loss_dice = args.kappa * dice_loss(ad_low_res_logits.sigmoid(), label_masks_256/255.0)     
@@ -704,7 +686,6 @@ def text2image_ldm_stable_last(
                     
             image_m = image_m - mean[None,:,None,None]
             image_m = image_m / std[None,:,None,None]
-            #print(k, image_m.max(), image_m.min(), raw_img.max(), raw_img.min())
             loss_mse =  args.beta * torch.norm(image_m-raw_img, p=args.norm).mean()  # **2 / 50
             
             loss = loss_dice + loss_ce - loss_mse
@@ -713,7 +694,6 @@ def text2image_ldm_stable_last(
             print('Loss', loss.item(), 'Loss_dice', loss_dice.item(),'Loss_ce', loss_ce.item(), 'Loss_mse', loss_mse.item())
             print(k, 'Predicted:', loss)
             print('Grad:', latents_last.grad.min(), latents_last.grad.max())
-            # print(latent.min(), latent.max())
         
         l1_grad = latents_last.grad / torch.norm(latents_last.grad, p=1)
         print('L1 Grad:', l1_grad.min(), l1_grad.max())
@@ -735,7 +715,6 @@ def text2image_ldm_stable_last(
     latents = (1 / 0.18215 * latents)
     image = model.vae.decode(latents)['sample']
     image = (image / 2 + 0.5)
-    #print(4, image.max(), image.min())
     image = limitation01(image)
     print(2, image.max(), image.min())
 
@@ -781,7 +760,6 @@ def check_controlnet():
     ).images[0]
     
     output_numpy = np.array(output)
-    #print(type(output),output_numpy.max())
     output.save('check_controlnet_pth.png')
     
     control_image = Image.open(os.path.join(args.control_mask_dir, f'sa_{str(id)}.png'))
@@ -813,7 +791,7 @@ def check_inversion():
 if __name__ == '__main__':
     # Load Stable Diffusion & ControlNet
     scheduler = DDIMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", clip_sample=False, set_alpha_to_one=False)
-    MY_TOKEN = your huggingface token
+    MY_TOKEN = "your huggingface token"
     LOW_RESOURCE = False 
     NUM_DDIM_STEPS = args.ddim_steps
     GUIDANCE_SCALE = args.guidance_scale
@@ -822,7 +800,6 @@ if __name__ == '__main__':
     
     controlnet = ControlNetModel.from_single_file(args.controlnet_path).to(device)    
     ldm_stable = StableDiffusionControlNetPipeline.from_pretrained("runwayml/stable-diffusion-v1-5", use_auth_token=MY_TOKEN,controlnet=controlnet, scheduler=scheduler).to(device)
-    # ldm_stable.enable_model_cpu_offload()
     
     try:
         ldm_stable.disable_xformers_memory_efficient_attention()
@@ -882,10 +859,8 @@ if __name__ == '__main__':
         label_masks = torch.empty([0,1,1024,1024]).cuda()
         for j in range(min(args.sam_batch,origin_len)):
             label_mask_path = os.path.join(label_mask_dir,f'segmentation_{str(j)}.png')
-            #print(label_mask_path)
             label_mask = Image.open(label_mask_path).convert('L').resize((image_size))
             label_mask_torch = torch.tensor(np.array(label_mask)).cuda().to(torch.float32)
-            #print(label_mask_torch.max())
             label_masks = torch.cat([label_masks,label_mask_torch.unsqueeze(0).unsqueeze(0)])
         
         # load sup mask for show
@@ -895,10 +870,8 @@ if __name__ == '__main__':
             label_mask = Image.open(label_mask_path).convert('L').resize((512,512)) 
             label_mask_torch = torch.tensor(np.array(label_mask)).cuda().to(torch.float32)
             sup_masks = torch.cat([sup_masks,label_mask_torch.unsqueeze(0).unsqueeze(0)])
-        # label_masks = label_masks[-1:]
         
         boxes = masks_to_boxes(label_masks.squeeze())    
-        #print(torch.max(boxes))
         
         label_masks_256 = F.interpolate(label_masks, size=(256,256), mode='bilinear', align_corners=False) 
         
@@ -935,7 +908,7 @@ if __name__ == '__main__':
         print('Grad Time:', time.time() - start)
         
         # show 
-        ptp_utils.view_images([image_inv[0]], prefix=os.path.join(save_path,'adv','sa_'+str(i)))
+        ptp_utils.view_images([image_inv[0]], prefix=os.path.join(save_path,'adv','sa_'+str(i)), shuffix='.jpg')
         ptp_utils.view_images([raw_img_show, mask_show, image_inv[0], worst_mask, vis, str2img(worst_iou)], prefix=os.path.join(save_path,'pair','sa_'+str(i)), shuffix='.jpg')
         
         # record adversarial iou
