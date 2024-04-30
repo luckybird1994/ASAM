@@ -34,7 +34,7 @@ conda env create -f environment.yml
 
 
 ## Training
-[Preparing datasets](docs/data.md) and [training an mask-guided ControlNet](docs/controlnet.md) in advance, then you can start to **project images to diffusion latents** using this command:
+[Preparing datasets](docs/data.md) and [training a mask-guided ControlNet](docs/controlnet.md) in advance, then you can start to **project images to diffusion latents** using this command:
 ```bash
 python null_text_inversion.py \
     --save_root=output/sa_000000-Inversion \
