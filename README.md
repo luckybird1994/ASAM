@@ -102,11 +102,11 @@ We provide the [online demo](https://huggingface.co/spaces/xhk/ASAM) on huggingf
 
 ## Cite
 ```bibtex
-@article{tang2023can,
-  title={Can sam segment anything? when sam meets camouflaged object detection},
-  author={Tang, Lv and Xiao, Haoke and Li, Bo},
-  journal={arXiv preprint arXiv:2304.04709},
-  year={2023}
+@InProceedings{asam2024,
+  title={ASAM: Boosting Segment Anything Model with Adversarial Tuning},
+  author={Bo Li, Haoke Xiao, Lv Tang},
+  booktitle={CVPR},
+  year={2024}
 }
 ```
 
