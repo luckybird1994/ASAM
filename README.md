@@ -20,7 +20,7 @@ In the evolving landscape of computer vision, foundation models have emerged as 
 
 ## News
 - [x] [2024.02.27] Paper is accepted by CVPR2024 and GitHub repo is created.
-- [x] [2024.03.10] We release the training code, pre-trained models, datasets and online demo.
+- [x] [2024.05.01] We release the training code, pre-trained models, datasets and online demo.
 
 ## :fire: Highlight
 
