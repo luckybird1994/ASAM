@@ -2,7 +2,7 @@
 
 <font size=7><div align='center'>ASAM: Boosting Segment Anything Model with Adversarial Tuning</div></font>
 <p align="center">
-  <a href='https://github.com/luckybird1994/ASAM'><img src='https://img.shields.io/badge/Project-Page-Green'></a>
+  <a href='https://asam2024.github.io/'><img src='https://img.shields.io/badge/Project-Page-Green'></a>
   <a href='http://arxiv.org/abs/2306.15195'><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a>
   <a href='https://huggingface.co/spaces/xhk/ASAM'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Online Demo-green'></a>
   <a href='https://huggingface.co/xhk/ASAM'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Checkpoint-blue'></a>
