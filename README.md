@@ -98,7 +98,7 @@ or directly `bash scripts/sam_continue_leanring/test.sh`, where `--restore-model
 
 ## Demo
 We provide the [online demo](https://huggingface.co/spaces/xhk/ASAM) on huggingface, for example:
-<div align=center><img width="90%" src="assets/demo.jpg"/></div>
+<div align=center><img width="90%" src="assets/demo.png"/></div>
 
 ## Cite
 ```bibtex
