@@ -102,10 +102,10 @@ We provide the [online demo](https://huggingface.co/spaces/xhk/ASAM) on huggingf
 
 ## Cite
 ```bibtex
-@InProceedings{asam2024,
+@article{li2024asam,
   title={ASAM: Boosting Segment Anything Model with Adversarial Tuning},
-  author={Bo Li, Haoke Xiao, Lv Tang},
-  booktitle={CVPR},
+  author={Li, Bo and Xiao, Haoke and Tang, Lv},
+  journal={arXiv preprint arXiv:2405.00256},
   year={2024}
 }
 ```
