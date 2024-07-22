@@ -2,8 +2,8 @@
 
 <font size=7><div align='center'>ASAM: Boosting Segment Anything Model with Adversarial Tuning</div></font>
 <p align="center">
-  <a href='https://github.com/luckybird1994/ASAM'><img src='https://img.shields.io/badge/Project-Page-Green'></a>
-  <a href='http://arxiv.org/abs/2306.15195'><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a>
+  <a href='https://asam2024.github.io/'><img src='https://img.shields.io/badge/Project-Page-Green'></a>
+  <a href='https://arxiv.org/abs/2405.00256'><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a>
   <a href='https://huggingface.co/spaces/xhk/ASAM'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Online Demo-green'></a>
   <a href='https://huggingface.co/xhk/ASAM'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Checkpoint-blue'></a>
   <a href='https://huggingface.co/datasets/xhk/ASAM-Datasets'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset-yellow'></a>
@@ -20,7 +20,7 @@ In the evolving landscape of computer vision, foundation models have emerged as 
 
 ## News
 - [x] [2024.02.27] Paper is accepted by CVPR2024 and GitHub repo is created.
-- [x] [2024.03.10] We release the training code, pre-trained models, datasets and online demo.
+- [x] [2024.05.01] We release the training code, pre-trained models, datasets and online demo.
 
 ## :fire: Highlight
 
@@ -98,15 +98,15 @@ or directly `bash scripts/sam_continue_leanring/test.sh`, where `--restore-model
 
 ## Demo
 We provide the [online demo](https://huggingface.co/spaces/xhk/ASAM) on huggingface, for example:
-<div align=center><img width="90%" src="assets/demo.jpg"/></div>
+<div align=center><img width="90%" src="assets/demo.png"/></div>
 
 ## Cite
 ```bibtex
-@article{tang2023can,
-  title={Can sam segment anything? when sam meets camouflaged object detection},
-  author={Tang, Lv and Xiao, Haoke and Li, Bo},
-  journal={arXiv preprint arXiv:2304.04709},
-  year={2023}
+@article{li2024asam,
+  title={ASAM: Boosting Segment Anything Model with Adversarial Tuning},
+  author={Li, Bo and Xiao, Haoke and Tang, Lv},
+  journal={arXiv preprint arXiv:2405.00256},
+  year={2024}
 }
 ```
 
